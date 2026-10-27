@@ -1,0 +1,1218 @@
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ตกมั้ย? | เช็กฝนในพื้นที่ของคุณ</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+  <style>
+    :root {
+      --blue: #69aee8;
+      --blue-dark: #327fbd;
+      --blue-light: #eaf5ff;
+      --text: #26374a;
+      --muted: #8291a3;
+      --white: #ffffff;
+      --bg: #f5f9fd;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Prompt', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: auto;
+      padding: 26px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      width: 48px;
+      height: 48px;
+      border-radius: 17px;
+      background: var(--blue-light);
+      display: grid;
+      place-items: center;
+      font-size: 27px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 27px;
+      font-weight: 600;
+    }
+
+    .subtitle {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .location-button, button {
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 17px;
+      background: var(--blue);
+      color: white;
+      font: inherit;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      background: var(--blue-dark);
+    }
+
+    .section-title {
+      font-size: 21px;
+      margin: 0 0 5px;
+      font-weight: 500;
+    }
+
+    .section-subtitle {
+      color: var(--muted);
+      margin: 0 0 18px;
+      font-size: 13px;
+    }
+
+    .map-wrap {
+      position: relative;
+      border-radius: 24px;
+      overflow: hidden;
+      background: #e2f2ff;
+      border: 1px solid #e6edf4;
+      box-shadow: 0 8px 28px #527ca10d;
+    }
+
+    #map {
+      height: 440px;
+      width: 100%;
+      z-index: 1;
+    }
+
+    .map-label {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      z-index: 500;
+      background: #ffffffed;
+      padding: 10px 15px;
+      border-radius: 14px;
+      box-shadow: 0 3px 14px #243b5312;
+      font-size: 13px;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 12px;
+      margin: 20px 0 24px;
+    }
+
+    select {
+      width: 100%;
+      min-width: 0;
+      padding: 13px 15px;
+      border: 1px solid #e0eaf3;
+      border-radius: 14px;
+      background: white;
+      color: var(--text);
+      font: inherit;
+      outline: none;
+    }
+
+    select:focus {
+      border-color: var(--blue);
+    }
+
+    .weather-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 15px;
+    }
+
+    .weather-heading h2 {
+      font-size: 21px;
+      margin: 0;
+      font-weight: 500;
+    }
+
+    #status {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .weather-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .weather-card {
+      background: white;
+      padding: 20px;
+      border: 1px solid #edf1f6;
+      border-radius: 20px;
+      box-shadow: 0 5px 20px #527ca108;
+      min-height: 120px;
+    }
+
+    .weather-icon {
+      font-size: 22px;
+      margin-bottom: 8px;
+    }
+
+    .weather-label {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .weather-value {
+      font-size: 25px;
+      font-weight: 600;
+      margin-top: 3px;
+    }
+
+    .rain-card {
+      background: linear-gradient(135deg, #e7f4ff, #f8fcff);
+      border-color: #d9ecff;
+    }
+
+    .note {
+      margin-top: 18px;
+      padding: 15px 18px;
+      background: white;
+      border-radius: 16px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.8;
+    }
+
+    footer {
+      text-align: center;
+      padding: 25px 0 5px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    @media (max-width: 800px) {
+      .container {
+        padding: 16px;
+      }
+
+      #map {
+        height: 350px;
+      }
+
+      .weather-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .controls {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 23px;
+      }
+    }
+
+    @media (max-width: 380px) {
+      .weather-card {
+        padding: 14px;
+      }
+
+      .weather-value {
+        font-size: 21px;
+      }
+    }
+    
+    .forecast-section {
+      margin: 24px 0;
+    }
+
+    .forecast-status {
+      margin: 12px 0;
+      padding: 12px 16px;
+      border-radius: 12px;
+      background: #eef7ff;
+      color: #327fbd;
+      font-size: 14px;
+    }
+
+    .forecast-hours {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding: 8px 2px 14px;
+    }
+
+    .forecast-card {
+      flex: 0 0 125px;
+      padding: 16px 12px;
+      text-align: center;
+      background: white;
+      border: 1px solid #e2edf7;
+      border-radius: 16px;
+      box-shadow: 0 3px 10px #327fbd12;
+    }
+
+    .forecast-time {
+      color: #52718b;
+      font-size: 13px;
+    }
+
+    .forecast-icon {
+      margin: 10px 0;
+      font-size: 27px;
+    }
+
+    .forecast-temp {
+      color: #245e91;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .forecast-rain {
+      margin-top: 8px;
+      color: #327fbd;
+      font-size: 13px;
+    }
+
+    .forecast-humidity {
+      margin-top: 5px;
+      color: #71869a;
+      font-size: 12px;
+    }
+.weather-summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-top: 18px;
+  padding: 18px;
+  background: #eaf5ff;
+  border: 1px solid #d4eaff;
+  border-radius: 18px;
+}
+
+.summary-icon {
+  font-size: 30px;
+}
+
+.summary-title {
+  font-weight: 600;
+  color: #327fbd;
+  margin-bottom: 6px;
+}
+
+#weatherSummary {
+  margin: 0;
+  color: #34536b;
+  line-height: 1.7;
+}
+  </style>
+  
+
+
+</head>
+
+<body>
+  <main class="container">
+    <header>
+      <div class="brand">
+        <div class="logo">🌦️</div>
+        <div>
+          <h1>ตกมั้ย<span style="color:#69aee8">?</span></h1>
+          <p class="subtitle">รู้ก่อนฝนตก วางแผนก่อนออกจากบ้าน</p>
+        </div>
+      </div>
+
+      <button class="location-button" id="myLocation">
+        📍 ใช้ตำแหน่งของฉัน
+      </button>
+    </header>
+
+    <section>
+      <h2 class="section-title">เรดาร์ฝนประเทศไทย</h2>
+      <p class="section-subtitle">
+        เลือกพื้นที่ที่ต้องการตรวจสอบจากแผนที่
+      </p>
+<div id="radarStatus" style="
+  margin: 10px 0;
+  padding: 10px 14px;
+  background: #eef7ff;
+  color: #327fbd;
+  border-radius: 12px;
+  font-size: 14px;
+">
+  🌧️ เรดาร์ฝน: รอการเปิดใช้งาน
+</div>
+      <div class="map-wrap">
+        <div class="map-label">🗺️ ประเทศไทย</div>
+        
+<div style="display:flex; gap:10px; margin:10px 0; flex-wrap:wrap;">
+  <button id="radarPlay">▶ เล่นภาพย้อนหลัง</button>
+  <button id="radarStop" style="background:#8291a3;">
+    ⏸ หยุดแอนิเมชัน
+  </button>
+</div>
+
+        <div id="map"></div>
+      </div>
+    </section>
+    
+    <section class="forecast-section">
+      <h2 class="section-title">พยากรณ์ฝน 24 ชั่วโมง</h2>
+      <p class="section-subtitle">
+        ตรวจสอบโอกาสฝนตกในแต่ละชั่วโมง
+      </p>
+
+      <div id="forecastStatus" class="forecast-status">
+        กำลังโหลดข้อมูลพยากรณ์...
+      </div>
+
+      <div id="forecastHours" class="forecast-hours"></div>
+    </section>
+
+
+    <section class="controls" aria-label="เลือกพื้นที่">
+      <select id="province">
+        
+
+<option value="8.0520,98.831560">กระบี่</option>
+<option value="13.756420,100.499250">กรุงเทพมหานคร</option>
+<option value="16.510530,103.551290">กาฬสินธุ์</option>
+<option value="14.055550,99.414550">กาญจนบุรี</option>
+<option value="16.454420,99.484680">กำแพงเพชร</option>
+<option value="16.4530,102.818060">ขอนแก่น</option>
+<option value="12.593640,102.115820">จันทบุรี</option>
+<option value="13.711260,101.034580">ฉะเชิงเทรา</option>
+<option value="13.348830,100.987830">ชลบุรี</option>
+<option value="15.188560,100.132890">ชัยนาท</option>
+<option value="15.835050,102.052890">ชัยภูมิ</option>
+<option value="10.473470,99.165530">ชุมพร</option>
+<option value="19.8986,99.8070">เชียงราย</option>
+<option value="18.788530,98.9942">เชียงใหม่</option>
+<option value="16.881640,99.165550">ตาก</option>
+<option value="7.58,99.6132">ตรัง</option>
+<option value="12.223540,102.577230">ตราด</option>
+<option value="14.218770,101.200540">นครนายก</option>
+<option value="13.819120,100.106760">นครปฐม</option>
+<option value="17.220090,104.679820">นครพนม</option>
+<option value="15.049780,102.218930">นครราชสีมา</option>
+<option value="8.4305,99.961190">นครศรีธรรมราช</option>
+<option value="15.715350,100.117290">นครสวรรค์</option>
+<option value="13.8508,100.4852">นนทบุรี</option>
+<option value="6.387860,101.814570">นราธิวาส</option>
+<option value="18.795270,100.698450">น่าน</option>
+<option value="18.2053,103.7277">บึงกาฬ</option>
+<option value="14.959680,103.064210">บุรีรัมย์</option>
+<option value="13.996430,100.540930">ปทุมธานี</option>
+<option value="11.829670,99.730330">ประจวบคีรีขันธ์</option>
+<option value="14.078250,101.376330">ปราจีนบุรี</option>
+<option value="6.854460,101.270850">ปัตตานี</option>
+<option value="14.394580,100.586120">พระนครศรีอยุธยา</option>
+<option value="19.175930,99.845130">พะเยา</option>
+<option value="8.469220,98.5140">พังงา</option>
+<option value="7.592720,100.0320">พัทลุง</option>
+<option value="16.421380,100.356190">พิจิตร</option>
+<option value="16.932650,100.466130">พิษณุโลก</option>
+<option value="13.0940,99.958210">เพชรบุรี</option>
+<option value="16.374710,101.163710">เพชรบูรณ์</option>
+<option value="18.163150,100.197450">แพร่</option>
+<option value="7.850860,98.368430">ภูเก็ต</option>
+<option value="16.116290,103.317140">มหาสารคาม</option>
+<option value="16.561380,104.618850">มุกดาหาร</option>
+<option value="19.2640,97.984670">แม่ฮ่องสอน</option>
+<option value="15.8435,104.174610">ยโสธร</option>
+<option value="6.547210,101.236210">ยะลา</option>
+<option value="15.9553,103.647650">ร้อยเอ็ด</option>
+<option value="9.9110,98.598220">ระนอง</option>
+<option value="12.6920,101.342620">ระยอง</option>
+<option value="13.543820,99.804550">ราชบุรี</option>
+<option value="14.780210,100.624460">ลพบุรี</option>
+<option value="17.535140,101.712640">เลย</option>
+<option value="18.461050,99.504570">ลำปาง</option>
+<option value="18.569130,99.0196">ลำพูน</option>
+<option value="15.094260,104.295840">ศรีสะเกษ</option>
+<option value="17.1665,104.144810">สกลนคร</option>
+<option value="7.226470,100.529470">สงขลา</option>
+<option value="6.637920,100.016580">สตูล</option>
+<option value="13.5870,100.629380">สมุทรปราการ</option>
+<option value="13.407180,99.998090">สมุทรสงคราม</option>
+<option value="13.537830,100.250560">สมุทรสาคร</option>
+<option value="13.857370,102.233740">สระแก้ว</option>
+<option value="14.512270,100.916270">สระบุรี</option>
+<option value="14.8995,100.402250">สิงห์บุรี</option>
+<option value="17.1368,99.861870">สุโขทัย</option>
+<option value="14.4804,100.0933">สุพรรณบุรี</option>
+<option value="9.128730,99.317640">สุราษฎร์ธานี</option>
+<option value="14.895950,103.514950">สุรินทร์</option>
+<option value="17.8485,102.776310">หนองคาย</option>
+<option value="17.167930,102.394670">หนองบัวลำภู</option>
+<option value="15.8740,104.630680">อำนาจเจริญ</option>
+<option value="14.5830,100.4490">อ่างทอง</option>
+<option value="17.401650,102.778450">อุดรธานี</option>
+<option value="17.652880,100.201590">อุตรดิตถ์</option>
+<option value="15.404140,100.022140">อุทัยธานี</option>
+<option value="15.298750,104.844580">อุบลราชธานี</option>
+<option value="15.8700,100.9925">ประเทศไทย (จุดกลาง)</option>
+
+
+      </select>
+
+      <select id="forecastDay">
+        <option value="0">วันนี้</option>
+        <option value="1">พรุ่งนี้</option>
+      </select>
+
+      <button id="checkWeather">เช็กสภาพอากาศ</button>
+    </section>
+
+    <section>
+      <div class="weather-heading">
+        <h2 id="placeName">สภาพอากาศในพื้นที่</h2>
+        <span id="status">กำลังเตรียมข้อมูล...</span>
+      </div>
+
+      <div class="weather-grid">
+        <article class="weather-card rain-card">
+          <div class="weather-icon">🌧️</div>
+          <div class="weather-label">โอกาสเกิดฝน</div>
+          <div class="weather-value" id="rainChance">—</div>
+        </article>
+
+        <article class="weather-card">
+          <div class="weather-icon">🌡️</div>
+          <div class="weather-label">อุณหภูมิ</div>
+          <div class="weather-value" id="temperature">—</div>
+        </article>
+
+        <article class="weather-card">
+          <div class="weather-icon">💧</div>
+          <div class="weather-label">ความชื้น</div>
+          <div class="weather-value" id="humidity">—</div>
+        </article>
+
+<article class="weather-card">
+  <div class="weather-icon">🌡️</div>
+  <div class="weather-label">อุณหภูมิสูงสุด / ต่ำสุด</div>
+  <div class="weather-value" id="tempRange">— / —</div>
+</article>
+
+        <article class="weather-card">
+          <div class="weather-icon">💨</div>
+          <div class="weather-label">ความเร็วลม</div>
+          <div class="weather-value" id="wind">—</div>
+        </article>
+      </div>
+
+      <div class="note" id="rainNote">
+        
+
+
+
+  ข้อมูลพยากรณ์จะปรากฏหลังจากโหลดสำเร็จ
+  โอกาสเกิดฝนเป็นค่าพยากรณ์ ไม่ใช่การรับประกันว่าฝนจะตก
+</div>
+
+<div class="weather-summary">
+  <div class="summary-icon">🌤️</div>
+  <div>
+    <div class="summary-title">สรุปสภาพอากาศ</div>
+    <p id="weatherSummary">กำลังวิเคราะห์สภาพอากาศ...</p>
+  </div>
+</div>
+
+
+      </div>
+    </section>
+
+    <footer>
+      ตกมั้ย? · ข้อมูลพยากรณ์จาก Open-Meteo · แผนที่จาก OpenStreetMap
+    </footer>
+  </main>
+
+    
+    
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    
+const province = document.getElementById('province');
+const forecastDay = document.getElementById('forecastDay');
+let forecastLocation = null;
+
+const map = L.map('map').setView([15.87, 100.99], 5.5);
+
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors',
+  maxZoom: 19
+}).addTo(map);
+
+let marker = L.marker([13.7563, 100.5018]).addTo(map);
+let radarLayer = null;
+let radarRefreshTimer = null;
+let radarButton = null;
+
+// โหลดภาพเรดาร์ล่าสุดจาก RainViewer
+
+async function refreshRadar() {
+  const statusBox = document.getElementById('radarStatus');
+
+  try {
+    if (statusBox) {
+      statusBox.textContent = '🌧️ กำลังโหลดข้อมูลเรดาร์ฝน...';
+    }
+
+    const response = await fetch(
+      'https://api.rainviewer.com/public/weather-maps.json',
+      { cache: 'no-store' }
+    );
+
+    if (!response.ok) {
+      throw new Error('โหลดข้อมูลเรดาร์ไม่สำเร็จ');
+    }
+
+    const data = await response.json();
+    const frames = data.radar?.past || [];
+    const frame = frames[frames.length - 1];
+
+    if (!frame || !data.host || !frame.time) {
+      throw new Error('ไม่พบภาพเรดาร์ล่าสุด');
+    }
+
+    const tileUrl =
+      data.host + frame.path +
+      '/256/{z}/{x}/{y}/2/1_0.png';
+
+    if (radarLayer) {
+      radarLayer.setUrl(tileUrl);
+    } else {
+      radarLayer = L.tileLayer(tileUrl, {
+        opacity: 0.7,
+        maxZoom: 19,
+        maxNativeZoom: 7,
+        attribution:
+          '<a href="https://www.rainviewer.com/" target="_blank">Weather data by RainViewer</a>'
+      });
+    }
+
+    // แปลงเวลาของภาพเรดาร์จาก Unix timestamp
+    const radarTime = new Date(frame.time * 1000);
+
+    const formattedTime = radarTime.toLocaleString('th-TH', {
+      dateStyle: 'short',
+      timeStyle: 'short',
+      timeZone: 'Asia/Bangkok'
+    });
+
+    if (statusBox) {
+      statusBox.textContent =
+        '🌧️ เรดาร์ฝน: ภาพข้อมูลเวลา ' + formattedTime;
+    }
+
+    console.log('โหลดภาพเรดาร์สำเร็จ:', formattedTime);
+
+  } catch (error) {
+    if (statusBox) {
+      statusBox.textContent =
+        '⚠️ โหลดข้อมูลเรดาร์ไม่สำเร็จ กรุณาลองใหม่';
+    }
+
+    console.error('เกิดข้อผิดพลาดในการโหลดเรดาร์:', error);
+
+    throw error;
+  }
+}
+
+
+let radarAnimationTimer = null;
+let radarAnimationFrames = [];
+
+const radarPlayButton = document.getElementById('radarPlay');
+const radarStopButton = document.getElementById('radarStop');
+
+// หยุดการเล่นภาพย้อนหลัง
+function stopRadarAnimation() {
+  if (radarAnimationTimer) {
+    clearInterval(radarAnimationTimer);
+    radarAnimationTimer = null;
+  }
+}
+
+// เริ่มเล่นภาพเรดาร์ย้อนหลัง
+async function playRadarAnimation() {
+  if (!radarLayer || !map.hasLayer(radarLayer)) {
+    alert('กรุณาเปิดเรดาร์ฝนก่อน');
+    return;
+  }
+
+  stopRadarAnimation();
+  radarPlayButton.disabled = true;
+  radarPlayButton.textContent = 'กำลังโหลดภาพ...';
+
+  try {
+    const response = await fetch(
+      'https://api.rainviewer.com/public/weather-maps.json',
+      { cache: 'no-store' }
+    );
+
+    if (!response.ok) {
+      throw new Error('โหลดรายการภาพย้อนหลังไม่สำเร็จ');
+    }
+
+    const data = await response.json();
+    radarAnimationFrames = data.radar?.past || [];
+
+    if (radarAnimationFrames.length < 2) {
+      throw new Error('มีภาพย้อนหลังไม่เพียงพอ');
+    }
+
+    let index = 0;
+
+    const showFrame = () => {
+      const frame = radarAnimationFrames[index];
+
+      radarLayer.setUrl(
+        data.host + frame.path +
+        '/256/{z}/{x}/{y}/2/1_0.png'
+      );
+
+      const time = new Date(frame.time * 1000);
+      const statusBox = document.getElementById('radarStatus');
+
+      if (statusBox) {
+        statusBox.textContent =
+          '🌧️ กำลังเล่นภาพย้อนหลัง: ' +
+          time.toLocaleString('th-TH', {
+            dateStyle: 'short',
+            timeStyle: 'short',
+            timeZone: 'Asia/Bangkok'
+          });
+      }
+
+      index = (index + 1) % radarAnimationFrames.length;
+    };
+
+    showFrame();
+    radarAnimationTimer = setInterval(showFrame, 700);
+
+    radarPlayButton.textContent = '▶ เล่นอีกครั้ง';
+
+  } catch (error) {
+    console.error('เล่นแอนิเมชันเรดาร์ไม่สำเร็จ:', error);
+    alert('เล่นภาพย้อนหลังไม่สำเร็จ กรุณาดูข้อความ Error ใน Console');
+  } finally {
+    radarPlayButton.disabled = false;
+  }
+}
+
+radarPlayButton.addEventListener('click', playRadarAnimation);
+
+radarStopButton.addEventListener('click', async () => {
+  stopRadarAnimation();
+
+  try {
+    if (radarLayer && map.hasLayer(radarLayer)) {
+      await refreshRadar();
+    }
+  } catch (error) {
+    console.error('กลับไปแสดงภาพล่าสุดไม่สำเร็จ:', error);
+  }
+
+  radarPlayButton.textContent = '▶ เล่นภาพย้อนหลัง';
+});
+
+// เริ่มอัปเดตเรดาร์ทุก 5 นาที
+
+function startRadarRefresh() {
+  if (radarRefreshTimer) {
+    clearInterval(radarRefreshTimer);
+  }
+
+  let isRefreshing = false;
+
+  radarRefreshTimer = setInterval(async () => {
+    if (!radarLayer || !map.hasLayer(radarLayer)) return;
+    if (isRefreshing) return;
+
+    isRefreshing = true;
+
+    try {
+      await refreshRadar();
+    } catch (error) {
+      console.error('อัปเดตเรดาร์ไม่สำเร็จ:', error);
+
+      const statusBox = document.getElementById('radarStatus');
+
+      if (statusBox) {
+        statusBox.textContent =
+          '⚠️ อัปเดตเรดาร์ไม่สำเร็จ จะลองใหม่ในรอบถัดไป';
+      }
+    } finally {
+      isRefreshing = false;
+    }
+  }, 5 * 60 * 1000);
+}
+
+
+// สร้างปุ่มเปิด–ปิดเรดาร์
+const radarControl = L.control({ position: 'topright' });
+
+radarControl.onAdd = function () {
+  const button = L.DomUtil.create('button', 'radar-toggle');
+  radarButton = button;
+
+  button.type = 'button';
+  button.textContent = '🌧️ เปิดเรดาร์ฝน';
+
+  button.style.cssText = `
+    background: white;
+    color: #327fbd;
+    border: 1px solid #dceaf5;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font: 14px Prompt, sans-serif;
+    box-shadow: 0 2px 8px #00000012;
+    cursor: pointer;
+  `;
+
+  L.DomEvent.disableClickPropagation(button);
+
+  button.addEventListener('click', async () => {
+    if (radarLayer && map.hasLayer(radarLayer)) {
+      map.removeLayer(radarLayer);
+
+      if (radarRefreshTimer) {
+        clearInterval(radarRefreshTimer);
+        radarRefreshTimer = null;
+      }
+
+      button.textContent = '🌧️ เปิดเรดาร์ฝน';
+      return;
+    }
+
+    button.disabled = true;
+    button.textContent = 'กำลังโหลดเรดาร์...';
+
+    try {
+      await refreshRadar();
+      radarLayer.addTo(map);
+      startRadarRefresh();
+      button.textContent = '🌧️ ปิดเรดาร์ฝน';
+      const statusBox = document.getElementById('radarStatus');
+
+if (statusBox) {
+  statusBox.textContent =
+    '🌧️ เรดาร์ฝน: กำลังทำงาน | อัปเดตล่าสุด ' +
+    new Date().toLocaleTimeString('th-TH');
+}
+    } catch (error) {
+      console.error(error);
+      button.textContent = 'ลองโหลดเรดาร์อีกครั้ง';
+      alert('โหลดเรดาร์ไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ต');
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  return button;
+};
+
+radarControl.addTo(map);
+
+// เลือกพื้นที่และเลื่อนแผนที่
+function getSelectedPlace() {
+  const [lat, lon] = province.value.split(',').map(Number);
+  return { lat, lon };
+}
+
+function updateMap() {
+  const { lat, lon } = getSelectedPlace();
+  marker.setLatLng([lat, lon]);
+  map.flyTo([lat, lon], 9, { duration: 0.8 });
+}
+
+// โหลดพยากรณ์อากาศ
+
+async function loadWeatherAt(lat, lon) {
+  try {
+    const status = document.getElementById("status");
+    if (status) status.textContent = "กำลังโหลดข้อมูลจากตำแหน่งปัจจุบัน...";
+
+    const url = new URL("https://api.open-meteo.com/v1/forecast");
+    url.search = new URLSearchParams({
+      latitude: lat,
+      longitude: lon,
+      current: "temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m",
+      daily: "temperature_2m_max,temperature_2m_min,precipitation_probability_max",
+      timezone: "auto",
+      forecast_days: "2"
+    });
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error("โหลดข้อมูลอากาศไม่สำเร็จ");
+    }
+
+    const data = await response.json();
+    const current = data.current;
+    const daily = data.daily;
+
+    // อัปเดตข้อมูลอากาศปัจจุบัน
+    const temperature = document.getElementById("temperature");
+    const humidity = document.getElementById("humidity");
+    const wind = document.getElementById("wind");
+
+    if (temperature) {
+      temperature.textContent = `${current.temperature_2m}°C`;
+    }
+    if (humidity) {
+      humidity.textContent = `${current.relative_humidity_2m}%`;
+    }
+    if (wind) {
+      wind.textContent = `${current.wind_speed_10m} km/h`;
+    }
+
+    // อัปเดตพยากรณ์รายวัน หาก element มีอยู่
+    const rainNote = document.getElementById("rainNote");
+    if (rainNote) {
+      rainNote.textContent =
+        `โอกาสฝนวันนี้ ${daily.precipitation_probability_max[0] ?? "—"}%`;
+    }
+
+    // เก็บพิกัดไว้ให้ส่วนอื่นใช้ได้
+    forecastLocation = { lat, lon };
+
+    if (status) status.textContent = "อัปเดตข้อมูลจากตำแหน่งปัจจุบันแล้ว";
+  } catch (error) {
+    console.error("GPS weather error:", error);
+    const status = document.getElementById("status");
+    if (status) status.textContent = "โหลดข้อมูลอากาศจาก GPS ไม่สำเร็จ";
+  }
+}
+
+
+
+
+async function loadWeather() {
+  const { lat, lon } = getSelectedPlace();
+
+  const selectedOption =
+    province.options[province.selectedIndex];
+
+  const placeName = selectedOption
+    ? selectedOption.text
+    : 'ตำแหน่งที่เลือก';
+
+  const date = forecastDay.value;
+
+  const status = document.getElementById('status');
+
+  try {
+    status.textContent = 'กำลังเตรียมข้อมูล...';
+
+    const url =
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}` +
+      `&longitude=${lon}` +
+      `&current=temperature_2m,relative_humidity_2m,wind_speed_10m` +
+      `&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max` +
+      `&timezone=Asia%2FBangkok&forecast_days=7`;
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error('โหลดข้อมูลจาก Open-Meteo ไม่สำเร็จ');
+    }
+
+    
+const data = await response.json();
+
+const availableDates = data.daily?.time || [];
+const selectedIndex = Number(forecastDay.value);
+
+const index = Number.isInteger(selectedIndex)
+  ? selectedIndex
+  : availableDates.indexOf(forecastDay.value);
+
+if (index < 0 || index >= availableDates.length) {
+  throw new Error('ไม่พบข้อมูลของวันที่เลือก');
+}
+
+const date = availableDates[index];
+
+if (index === -1) {
+  console.error('วันที่เลือก:', date);
+  console.error('วันที่จาก API:', availableDates);
+  throw new Error('ไม่พบข้อมูลของวันที่เลือก: ' + date);
+}
+
+
+    const isToday = date === data.daily.time[0];
+
+    const temp = isToday
+      ? data.current.temperature_2m
+      : data.daily.temperature_2m_max[index];
+
+    const humidity = isToday
+      ? data.current.relative_humidity_2m
+      : null;
+
+    const wind = isToday
+      ? data.current.wind_speed_10m
+      : null;
+
+    const rain = data.daily.precipitation_probability_max[index];
+    const maxTemp = data.daily.temperature_2m_max[index];
+const minTemp = data.daily.temperature_2m_min[index];
+
+const summary = [];
+
+if (rain == null) {
+  summary.push('ยังไม่มีข้อมูลโอกาสฝนตก');
+} else if (rain >= 70) {
+  summary.push('มีโอกาสฝนตกสูง แนะนำให้พกร่ม');
+} else if (rain >= 40) {
+  summary.push('มีโอกาสฝนตกปานกลาง ควรเตรียมตัวเผื่อฝน');
+} else {
+  summary.push('โอกาสฝนตกค่อนข้างน้อย');
+}
+
+if (maxTemp != null) {
+  if (maxTemp >= 35) {
+    summary.push('อากาศร้อนมาก ควรดื่มน้ำให้เพียงพอ');
+  } else if (maxTemp >= 30) {
+    summary.push('อากาศค่อนข้างร้อน');
+  } else if (maxTemp <= 20) {
+    summary.push('อากาศค่อนข้างเย็น');
+  }
+}
+
+document.getElementById('weatherSummary').textContent =
+  summary.join(' ');
+
+
+document.getElementById('tempRange').textContent =
+  maxTemp == null || minTemp == null
+    ? 'ไม่มีข้อมูล'
+    : `${maxTemp}°C / ${minTemp}°C`;
+
+    document.getElementById('temperature').textContent =
+      temp == null ? 'ไม่มีข้อมูล' : temp + '°C';
+
+    document.getElementById('humidity').textContent =
+      humidity == null ? 'ไม่มีข้อมูลรายวัน' : humidity + '%';
+
+    document.getElementById('wind').textContent =
+      wind == null ? 'ไม่มีข้อมูลรายวัน' : wind + ' กม./ชม.';
+
+    document.getElementById('rainNote').textContent =
+      rain == null
+        ? 'ยังไม่มีข้อมูลโอกาสฝนของวันที่เลือก'
+        : `โอกาสเกิดฝนวันที่เลือก ${rain}%`;
+
+    document.getElementById('placeName').textContent = placeName;
+    status.textContent = `พยากรณ์วันที่ ${date} โหลดสำเร็จ`;
+
+  } catch (error) {
+    console.error('โหลดข้อมูลไม่สำเร็จ:', error);
+    status.textContent = 'โหลดข้อมูลไม่สำเร็จ';
+    document.getElementById('rainNote').textContent =
+      'ไม่สามารถโหลดข้อมูลของวันที่เลือกได้';
+  }
+}
+
+
+
+province.addEventListener('change', () => {
+  forecastLocation = null;
+  updateMap();
+  loadWeather();
+  loadHourlyForecast();
+});
+
+forecastDay.addEventListener('change', loadWeather);
+
+document.getElementById('checkWeather').addEventListener('click', loadWeather);
+
+// ใช้ตำแหน่งปัจจุบัน
+document.getElementById('myLocation').addEventListener('click', () => {
+  if (!navigator.geolocation) {
+    alert('เบราว์เซอร์นี้ไม่รองรับการระบุตำแหน่ง');
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    position => {
+      const lat = position.coords.latitude;
+      const lon = position.coords.longitude;
+
+      marker.setLatLng([lat, lon]);
+      map.flyTo([lat, lon], 11);
+      loadWeatherAt(lat, lon);
+      forecastLocation = {
+  latitude: lat,
+  longitude: lon
+};
+loadHourlyForecast();
+    },
+    () => alert('ไม่สามารถเข้าถึงตำแหน่งได้ กรุณาอนุญาตให้เว็บไซต์ใช้ตำแหน่ง')
+  );
+});
+
+
+
+    
+
+    
+
+    
+
+    
+
+
+
+    loadWeather();
+        // พยากรณ์อากาศล่วงหน้า 24 ชั่วโมง
+    
+/* พิกัด GPS สำหรับระบบพยากรณ์รายชั่วโมง */
+
+
+async function loadHourlyForecast() {
+  const selectedOption = province.options[province.selectedIndex];
+
+  // ถ้ามีพิกัด GPS ให้ใช้ GPS ถ้าไม่มีให้ใช้จังหวัดที่เลือก
+  const latitude = forecastLocation
+    ? forecastLocation.latitude
+    : Number(selectedOption.value.split(',')[0]);
+
+  const longitude = forecastLocation
+    ? forecastLocation.longitude
+    : Number(selectedOption.value.split(',')[1]);
+
+  const placeName = forecastLocation
+    ? 'ตำแหน่งปัจจุบัน'
+    : selectedOption.text.trim();
+
+  const status = document.getElementById('forecastStatus');
+  const container = document.getElementById('forecastHours');
+
+  status.textContent = 'กำลังโหลดข้อมูลพยากรณ์...';
+  container.innerHTML = '';
+
+  try {
+    const params = new URLSearchParams({
+      latitude: latitude,
+      longitude: longitude,
+      hourly: 'temperature_2m,precipitation_probability,relative_humidity_2m',
+      forecast_hours: '24',
+      timezone: 'Asia/Bangkok'
+    });
+
+    const response = await fetch(
+      'https://api.open-meteo.com/v1/forecast?' + params
+    );
+
+    if (!response.ok) {
+      throw new Error('โหลดข้อมูลไม่สำเร็จ');
+    }
+
+    const data = await response.json();
+    const hourly = data.hourly;
+
+    for (let i = 0; i < hourly.time.length; i++) {
+      const time = new Date(hourly.time[i]);
+      const rain = hourly.precipitation_probability[i];
+      const temp = hourly.temperature_2m[i];
+      const humidity = hourly.relative_humidity_2m[i];
+
+      const card = document.createElement('div');
+      card.className = 'forecast-card';
+
+      const timeLabel = document.createElement('div');
+      timeLabel.className = 'forecast-time';
+      timeLabel.textContent = i === 0
+        ? 'ชั่วโมงนี้'
+        : String(time.getHours()).padStart(2, '0') + ':00 น.';
+
+      const icon = document.createElement('div');
+      icon.className = 'forecast-icon';
+      icon.textContent = rain == null ? '🌥️'
+        : rain >= 60 ? '🌧️'
+        : rain >= 30 ? '🌦️'
+        : '☀️';
+
+      const tempLabel = document.createElement('div');
+      tempLabel.className = 'forecast-temp';
+      tempLabel.textContent = temp == null
+        ? '--°C'
+        : Math.round(temp) + '°C';
+
+      const rainLabel = document.createElement('div');
+      rainLabel.className = 'forecast-rain';
+      rainLabel.textContent = 'โอกาสฝน ' +
+        (rain == null ? '--' : rain + '%');
+
+      const humidityLabel = document.createElement('div');
+      humidityLabel.className = 'forecast-humidity';
+      humidityLabel.textContent = 'ความชื้น ' +
+        (humidity == null ? '--' : humidity + '%');
+
+      card.append(
+        timeLabel,
+        icon,
+        tempLabel,
+        rainLabel,
+        humidityLabel
+      );
+
+      container.appendChild(card);
+    }
+
+    status.textContent = 'พยากรณ์ 24 ชั่วโมง • ' + placeName;
+
+  } catch (error) {
+    console.error('โหลดพยากรณ์รายชั่วโมงไม่สำเร็จ:', error);
+    status.textContent = 'โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่';
+  }
+}
+
+
+    
+    loadHourlyForecast();
+  </script>
+</body>
+</html>
